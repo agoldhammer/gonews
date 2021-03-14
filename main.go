@@ -41,7 +41,7 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Println(databases)
-	readAuths(client)
+	// readAuths(client)
 	readStatuses(client)
 	fmt.Println(time.Now())
 }
@@ -82,10 +82,16 @@ func readAuths(client *mongo.Client) {
 func readStatuses(client *mongo.Client) {
 	var status StatusType
 	ctx := context.TODO()
+
+	clause1 := primitive.E{Key: "$search", Value: "Castex"}
+	// clause2 := primitive.E{Key: "$text", Value: clause1}
+	// fmt.Printf("clause2 %v", clause2)
+
+	searchfor := bson.D{primitive.E{Key: "$text", Value: bson.D{clause1}}}
 	findOptions := options.Find()
-	findOptions.SetLimit(5)
+	findOptions.SetLimit(25)
 	statuses := client.Database("euronews").Collection("statuses")
-	cur, err := statuses.Find(ctx, bson.D{}, findOptions)
+	cur, err := statuses.Find(ctx, searchfor, findOptions)
 	defer cur.Close(ctx)
 	if err != nil {
 		log.Fatal(err)
