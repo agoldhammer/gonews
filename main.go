@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"regexp"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -31,8 +30,6 @@ type AuthorType struct {
 	Author        string             `bson:"author"`
 	Language_code string             `bson:"language_code"`
 }
-
-type properNounCounterType map[string]int32
 
 func main() {
 
@@ -85,7 +82,7 @@ func readAuths(client *mongo.Client) {
 
 func readStatuses(client *mongo.Client) {
 	var status StatusType
-	properNounCounter := make(properNounCounterType, 1000)
+	pnc := make(properNounCounterType, 1000)
 
 	ctx := context.TODO()
 
@@ -96,7 +93,7 @@ func readStatuses(client *mongo.Client) {
 	// searchfor := bson.D{primitive.E{Key: "$text", Value: bson.D{clause1}}}
 	searchfor := bson.D{}
 	findOptions := options.Find()
-	findOptions.SetLimit(500000)
+	findOptions.SetLimit(5000)
 	statuses := client.Database("euronews").Collection("statuses")
 
 	cur, err := statuses.Find(ctx, searchfor, findOptions)
@@ -106,41 +103,16 @@ func readStatuses(client *mongo.Client) {
 	}
 	for cur.Next(context.TODO()) {
 		if err := cur.Decode(&status); err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 		//fmt.Printf("status: %v\n", cur.Current)
 		// fmt.Println("--->", status.Text)
 		//fmt.Println("***: ", status.Created_at.Time())
-		matches := properNouns(&status.Text)
+		matches := pnc.matcher(&status.Text)
 		// fmt.Println("matches", matches)
-		for _, pnoun := range *matches {
-			if n, ok := properNounCounter[pnoun]; ok {
-				// fmt.Println("incing", pnoun)
-				properNounCounter[pnoun] = n + 1
-			} else {
-				// fmt.Println("adding", pnoun)
-				properNounCounter[pnoun] = 1
-			}
-		}
+		pnc.add(matches)
 	}
-	for pnoun, count := range properNounCounter {
-		if count > 100 {
-
-			fmt.Printf("%s, count: %v\n", pnoun, count)
-		}
-	}
-}
-
-func properNouns(text *string) *[]string {
-	// blank out urls
-	reurl := regexp.MustCompile(`\bhttp[s]{0,1}://\S*\b`)
-	deurled := reurl.ReplaceAllString(*text, "")
-	// find capped words
-	re := regexp.MustCompile(`(\b[A-Z]+\S{3,}\b)`)
-	matches := re.FindAllString(deurled, 10)
-	// fmt.Printf("matches: %v\n", matches)
-	return &matches
-
+	pnc.print(10)
 }
 
 func estCount(client *mongo.Client) {
