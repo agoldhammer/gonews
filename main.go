@@ -43,6 +43,7 @@ func main() {
 	fmt.Println(databases)
 	// readAuths(client)
 	readStatuses(client)
+	estCount(client)
 	fmt.Println(time.Now())
 }
 
@@ -83,14 +84,15 @@ func readStatuses(client *mongo.Client) {
 	var status StatusType
 	ctx := context.TODO()
 
-	clause1 := primitive.E{Key: "$search", Value: "Castex"}
+	clause1 := primitive.E{Key: "$search", Value: "Darmanin"}
 	// clause2 := primitive.E{Key: "$text", Value: clause1}
 	// fmt.Printf("clause2 %v", clause2)
 
 	searchfor := bson.D{primitive.E{Key: "$text", Value: bson.D{clause1}}}
 	findOptions := options.Find()
-	findOptions.SetLimit(25)
+	findOptions.SetLimit(5)
 	statuses := client.Database("euronews").Collection("statuses")
+
 	cur, err := statuses.Find(ctx, searchfor, findOptions)
 	defer cur.Close(ctx)
 	if err != nil {
@@ -100,8 +102,18 @@ func readStatuses(client *mongo.Client) {
 		if err := cur.Decode(&status); err != nil {
 			panic(err)
 		}
-		fmt.Printf("status: %v\n", cur.Current)
-		fmt.Println("decoded", status)
-		fmt.Println("date: ", status.Created_at.Time())
+		//fmt.Printf("status: %v\n", cur.Current)
+		fmt.Println("--->", status.Text)
+		fmt.Println("***: ", status.Created_at.Time())
 	}
+}
+
+func estCount(client *mongo.Client) {
+	statuses := client.Database("euronews").Collection("statuses")
+	opts := options.EstimatedDocumentCount().SetMaxTime(2 * time.Second)
+	cnt, err := statuses.EstimatedDocumentCount(context.TODO(), opts)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Est. Statuses count: ", cnt)
 }
