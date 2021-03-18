@@ -42,10 +42,21 @@ func init() {
 }
 
 func main() {
-	println(srcdb)
-	println("count", count)
+	println("Source db: ", srcdb)
+	println("Count: ", count)
 	println("search for: ", searchfor)
+	println("Display threshold: ", dth)
 	setup()
+}
+
+func isValidSrcDb() bool {
+	switch srcdb {
+	case
+		"euronews",
+		"usnews":
+		return true
+	}
+	return false
 }
 
 func setup() {
@@ -56,10 +67,13 @@ func setup() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(databases)
+	fmt.Printf("Available dbs %v\n---\n", databases)
+	if !isValidSrcDb() {
+		log.Fatal("srcdb must be euronews or usnews")
+	}
 	// readAuths(client)
 	// phrase search example: stext := "\"Emmanuel Macron\""
 
-	statuses := client.Database("euronews").Collection("statuses")
+	statuses := client.Database(srcdb).Collection("statuses")
 	process(statuses, &searchfor, &count, &dth)
 }
