@@ -5,7 +5,7 @@ import (
 	"regexp"
 )
 
-type properNounCounterType map[string]int32
+type properNounCounterType map[string]int
 
 // given text of 1 status, find all capped words (excluding caps in URLs)
 // return: pointer to a slice containing capped string
@@ -33,9 +33,9 @@ func (pnc properNounCounterType) add(matches *[]string) {
 
 }
 
-func (pnc properNounCounterType) print(mincount int32) {
+func (pnc properNounCounterType) print(dth *int) {
 	for pnoun, count := range pnc {
-		if count >= mincount {
+		if count >= *dth {
 
 			fmt.Printf("%s, count: %v\n", pnoun, count)
 		}
