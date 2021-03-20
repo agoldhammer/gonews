@@ -33,9 +33,9 @@ func (pnc properNounCounterType) add(matches *[]string) {
 
 }
 
-func (pnc properNounCounterType) print(dth *int) {
+func (pnc properNounCounterType) print(dth int) {
 	for pnoun, count := range pnc {
-		if count >= *dth {
+		if count >= dth {
 
 			fmt.Printf("%s, count: %v\n", pnoun, count)
 		}

@@ -29,45 +29,6 @@ type AuthorType struct {
 	Language_code string             `bson:"language_code"`
 }
 
-func filterProperNames(statuses *mongo.Collection, searchtext *string, count *int64, dth *int) {
-	ctx := context.Background()
-	if cur, err := textFinder(statuses, searchtext, count); err != nil {
-		log.Fatal(err)
-	} else {
-		showCursor(cur, dth)
-		cur.Close(ctx)
-	}
-	//readStatuses(client, &stext)
-	//estCount(client)
-	fmt.Println(time.Now())
-}
-
-// if keystr is empty string, "", apply no filter; if limit is 0, apply no limit;
-// otherwise, perform text search  on the given collection, coll, according to mongo rules tomatch keystr, which may include quotes
-// to seearch for exact phrase. Example: textFinder(statuses, "Macron", 5000)
-func textFinder(coll *mongo.Collection, keystr *string, limit *int64) (*mongo.Cursor, error) {
-	var searchfor bson.D
-	// filter := bson.D{{Key: "$bucket", Value: 100}}
-	if *keystr != "" {
-		clause1 := primitive.E{Key: "$search", Value: *keystr}
-		searchfor = bson.D{primitive.E{Key: "$text", Value: bson.D{clause1}}}
-	} else {
-		searchfor = bson.D{}
-	}
-
-	findOptions := options.Find()
-	if *limit > 0 {
-		findOptions.SetLimit(*limit)
-	}
-
-	if cur, err := coll.Find(context.TODO(), searchfor, findOptions); err != nil {
-		log.Fatal(err)
-		return nil, err
-	} else {
-		return cur, err
-	}
-}
-
 func readAuths(client *mongo.Client) {
 	var author AuthorType
 	ctx := context.TODO()
@@ -114,11 +75,7 @@ func readStatuses(client *mongo.Client, searchtext *string) {
 		//fmt.Printf("status: %v\n", cur.Current)
 		fmt.Println("--->", status.Text)
 		fmt.Println("***: ", status.Created_at.Time())
-		//matches := pnc.matcher(&status.Text)
-		// fmt.Println("matches", matches)
-		//pnc.add(matches)
 	}
-	//pnc.print(100)
 }
 
 func estCount(client *mongo.Client) {
@@ -131,7 +88,7 @@ func estCount(client *mongo.Client) {
 	fmt.Println("Est. Statuses count: ", cnt)
 }
 
-func showCursor(cur *mongo.Cursor, dth *int) {
+func showProper(cur *mongo.Cursor, dth int) {
 	var status StatusType
 	pnc := make(properNounCounterType, 1000)
 
@@ -140,11 +97,7 @@ func showCursor(cur *mongo.Cursor, dth *int) {
 		if err := cur.Decode(&status); err != nil {
 			log.Fatal(err)
 		}
-		//fmt.Printf("status: %v\n", cur.Current)
-		// fmt.Println("--->", status.Text)
-		//fmt.Println("***: ", status.Created_at.Time())
 		matches := pnc.matcher(&status.Text)
-		// fmt.Println("matches", matches)
 		pnc.add(matches)
 	}
 	pnc.print(dth)

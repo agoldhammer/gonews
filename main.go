@@ -127,6 +127,8 @@ func setup(f *flagsType) {
 	// filterProperNames(statuses, &f.searchfor, &f.count, &f.dth)
 	if cur, err := statusFinder(statuses, f); err != nil {
 		log.Fatal("status finder failed")
+	} else if flags.proper {
+		showProper(cur, flags.dth)
 	} else {
 		filterStatuses(cur)
 	}
@@ -177,7 +179,8 @@ func buildCompoundQuery(flags *flagsType) bson.D {
 // search statuses as specified by flags
 // sort in ascending order
 func statusFinder(coll *mongo.Collection, f *flagsType) (*mongo.Cursor, error) {
-
+	var ASCENDING int = 1
+	// -1 for DESCENDING
 	limit := (*flags).count
 	//searchfor := buildTextSearch(flags)
 	searchfor := buildCompoundQuery(flags)
@@ -187,7 +190,7 @@ func statusFinder(coll *mongo.Collection, f *flagsType) (*mongo.Cursor, error) {
 	if limit > 0 {
 		findOptions.SetLimit(limit)
 	}
-	findOptions.SetSort(bson.D{{Key: "created_at", Value: 1}})
+	findOptions.SetSort(bson.D{{Key: "created_at", Value: ASCENDING}})
 
 	if cur, err := coll.Find(context.TODO(), searchfor, findOptions); err != nil {
 		log.Fatal(err)
