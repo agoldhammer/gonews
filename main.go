@@ -35,7 +35,8 @@ var searchfor string
 var dth int
 
 type dateFlag struct {
-	date time.Time
+	date  time.Time
+	valid bool
 }
 
 var start dateFlag
@@ -53,17 +54,19 @@ func init() {
 	flag.IntVar(&pct, "pct", 100, "pct of file to proc (neg from end")
 	flag.StringVar(&searchfor, "search", "", "search string")
 	flag.IntVar(&dth, "dth", 10, "display threshold")
-	// flag.StringVar(&start, "start", "", "start date")
 	flag.Var(&start, "start", "start date, US fmt e.g. [3/18/2021]")
+	flag.Var(&end, "end", "end date, US format e.g. [3/19/2021]")
 	flag.Parse()
 }
 
 func main() {
-	println("Source db: ", srcdb)
-	println("Count: ", count)
-	println("search for: ", searchfor)
-	println("Display threshold: ", dth)
-	fmt.Println("Start date", start.String())
+	fmt.Println("Source db: ", srcdb)
+	fmt.Println("Count: ", count)
+	fmt.Println("Pct: ", pct)
+	fmt.Println("search for: ", searchfor)
+	fmt.Println("Display threshold: ", dth)
+	fmt.Println("Start date: ", start.String())
+	fmt.Println("End date: ", end.String())
 	//Test_Set()
 	setup()
 }
@@ -101,13 +104,17 @@ func setup() {
 func (df *dateFlag) Set(s string) error {
 	date, err := time.Parse(layoutUS, s)
 	if err != nil {
-		log.Fatal(err)
+		df.valid = false
 		return err
 	}
 	df.date = date
+	df.valid = true
 	return nil
 }
 
 func (df *dateFlag) String() string {
-	return df.date.Format(layoutISO)
+	if df.valid {
+		return df.date.Format(layoutISO)
+	}
+	return "Date not set"
 }
