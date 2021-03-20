@@ -170,13 +170,12 @@ func buildDateQuery(field, op string, val *dateFlag) bson.E {
 
 func buildCompoundQuery(flags *flagsType) bson.D {
 	base := buildTextSearch(flags)
-	query := append(base, buildDateQuery("created_at", "$gt", &flags.start))
+	query := append(base, buildDateQuery("created_at", "$gte", &flags.start))
 	return query
 }
 
-// if keystr is empty string, "", apply no filter; if limit is 0, apply no limit;
-// otherwise, perform text search  on the given collection, coll, according to mongo rules tomatch keystr, which may include quotes
-// to seearch for exact phrase. Example: textFinder(statuses, "Macron", 5000)
+// search statuses as specified by flags
+// sort in ascending order
 func statusFinder(coll *mongo.Collection, f *flagsType) (*mongo.Cursor, error) {
 
 	limit := (*flags).count
@@ -188,6 +187,7 @@ func statusFinder(coll *mongo.Collection, f *flagsType) (*mongo.Cursor, error) {
 	if limit > 0 {
 		findOptions.SetLimit(limit)
 	}
+	findOptions.SetSort(bson.D{{Key: "created_at", Value: 1}})
 
 	if cur, err := coll.Find(context.TODO(), searchfor, findOptions); err != nil {
 		log.Fatal(err)
