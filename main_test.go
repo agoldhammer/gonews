@@ -1,7 +1,10 @@
 package main
 
 import (
+	"reflect"
 	"testing"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func Test_dateFlag_Set(t *testing.T) {
@@ -24,14 +27,40 @@ func Test_isValidSrcDb(t *testing.T) {
 		mysrcdb string
 		want    bool
 	}{
-		{"test valid srcdb", "euronews", true},
+		{"test valid srcdb eu", "euronews", true},
+		{"test valid srcdb us", "usnews", true},
 		{"invalid srcdb", "xyz", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			srcdb = tt.mysrcdb
-			if got := isValidSrcDb(); got != tt.want {
+			flags.srcdb = tt.mysrcdb
+			if got := isValidSrcDb(flags); got != tt.want {
 				t.Errorf("isValidSrcDb() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_buildDateQuery(t *testing.T) {
+	var df = new(dateFlag)
+	df.Set("3/17/2021")
+	type args struct {
+		field string
+		op    string
+		val   *dateFlag
+	}
+	tests := []struct {
+		name string
+		args args
+		want bson.D
+	}{
+		{name: "date query builder", args: args{"created_at", "$gt", df},
+			want: bson.D{{Key: "created_at", Value: bson.D{{Key: "$gt", Value: df.date}}}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := buildDateQuery(tt.args.field, tt.args.op, tt.args.val); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("buildDateQuery() = %v, want %v", got, tt.want)
 			}
 		})
 	}

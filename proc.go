@@ -13,8 +13,6 @@ import (
 	// "go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-var NEWSURI string = "mongodb://192.168.0.128:27017"
-
 type StatusType struct {
 	ID            primitive.ObjectID `bson:"_id"`
 	Tid           int                `bson:"id"`
@@ -31,7 +29,7 @@ type AuthorType struct {
 	Language_code string             `bson:"language_code"`
 }
 
-func process(statuses *mongo.Collection, searchtext *string, count *int64, dth *int) {
+func filterProperNames(statuses *mongo.Collection, searchtext *string, count *int64, dth *int) {
 	ctx := context.Background()
 	if cur, err := textFinder(statuses, searchtext, count); err != nil {
 		log.Fatal(err)
@@ -68,21 +66,6 @@ func textFinder(coll *mongo.Collection, keystr *string, limit *int64) (*mongo.Cu
 	} else {
 		return cur, err
 	}
-}
-
-// connect to the database at NEWSURI
-func connect() (client *mongo.Client) {
-	client, err := mongo.NewClient(options.Client().ApplyURI(NEWSURI))
-	if err != nil {
-		log.Fatal(err)
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	err = client.Connect(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return client
 }
 
 func readAuths(client *mongo.Client) {
@@ -165,4 +148,17 @@ func showCursor(cur *mongo.Cursor, dth *int) {
 		pnc.add(matches)
 	}
 	pnc.print(dth)
+}
+
+func filterStatuses(cur *mongo.Cursor) {
+	var status StatusType
+
+	for cur.Next(context.TODO()) {
+		if err := cur.Decode(&status); err != nil {
+			log.Fatal(err)
+		}
+		// fmt.Printf("status: %v\n", cur.Current)
+		fmt.Println("***: ", status.Created_at.Time())
+		fmt.Println("--->", status.Text)
+	}
 }
