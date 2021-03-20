@@ -40,6 +40,7 @@ type flagsType struct {
 	srcdb     string
 	count     int64
 	pct       int
+	proper    bool
 	searchfor string
 	dth       int
 	start     dateFlag
@@ -56,6 +57,7 @@ func main() {
 	flag.StringVar(&flags.srcdb, "srcdb", "", "source db name, e.g. euronews")
 	flag.Int64Var(&flags.count, "count", 0, "count (0 or omit for all")
 	flag.IntVar(&flags.pct, "pct", 100, "pct of file to proc (neg from end")
+	flag.BoolVar(&flags.proper, "proper", false, "output condensed proper names")
 	flag.StringVar(&flags.searchfor, "search", "", "search string")
 	flag.IntVar(&flags.dth, "dth", 10, "display threshold")
 	flag.Var(&flags.start, "start", "start date, US fmt e.g. [3/18/2021]")
@@ -63,6 +65,9 @@ func main() {
 	flag.Parse()
 
 	printFlags(flags)
+
+	cq := buildCompoundQuery(flags)
+	fmt.Println("comp query: ", cq)
 	setup(flags)
 }
 
@@ -70,6 +75,7 @@ func printFlags(f *flagsType) {
 	fmt.Println("Source db: ", f.srcdb)
 	fmt.Println("Count: ", f.count)
 	fmt.Println("Pct: ", f.pct)
+	fmt.Println("Proper: ", f.proper)
 	fmt.Println("search for: ", f.searchfor)
 	fmt.Println("Display threshold: ", f.dth)
 	fmt.Println("Start date: ", f.start.String())
@@ -119,7 +125,7 @@ func setup(f *flagsType) {
 	statuses := client.Database(f.srcdb).Collection("statuses")
 	// TODO: this alternative should be selected from cli
 	// filterProperNames(statuses, &f.searchfor, &f.count, &f.dth)
-	if cur, err := statusFinder(statuses, flags); err != nil {
+	if cur, err := statusFinder(statuses, f); err != nil {
 		log.Fatal("status finder failed")
 	} else {
 		filterStatuses(cur)
@@ -148,25 +154,35 @@ func (df *dateFlag) String() string {
 
 func buildTextSearch(flags *flagsType) bson.D {
 	searchtext := flags.searchfor
+	// clause := bson.E{Key: "$search", Value: searchtext}
 	clause := bson.D{{Key: "$search", Value: searchtext}}
 	textPart := bson.D{{Key: "$text", Value: clause}}
 	return textPart
 }
 
-func buildDateQuery(field, op string, val *dateFlag) bson.D {
+func buildDateQuery(field, op string, val *dateFlag) bson.E {
 	if val.valid {
-		return bson.D{{Key: field, Value: bson.D{{Key: op, Value: val.date}}}}
+		return bson.E{Key: field, Value: bson.D{{Key: op, Value: val.date}}}
+		//return bson.D{{Key: field, Value: bson.D{{Key: op, Value: val.date}}}}
 	}
-	return bson.D{}
+	return bson.E{}
+}
+
+func buildCompoundQuery(flags *flagsType) bson.D {
+	base := buildTextSearch(flags)
+	query := append(base, buildDateQuery("created_at", "$gt", &flags.start))
+	return query
 }
 
 // if keystr is empty string, "", apply no filter; if limit is 0, apply no limit;
 // otherwise, perform text search  on the given collection, coll, according to mongo rules tomatch keystr, which may include quotes
 // to seearch for exact phrase. Example: textFinder(statuses, "Macron", 5000)
-func statusFinder(coll *mongo.Collection, flags *flagsType) (*mongo.Cursor, error) {
+func statusFinder(coll *mongo.Collection, f *flagsType) (*mongo.Cursor, error) {
 
 	limit := (*flags).count
-	searchfor := buildTextSearch(flags)
+	//searchfor := buildTextSearch(flags)
+	searchfor := buildCompoundQuery(flags)
+
 	fmt.Println("searching for", searchfor)
 	findOptions := options.Find()
 	if limit > 0 {

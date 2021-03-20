@@ -52,10 +52,10 @@ func Test_buildDateQuery(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want bson.D
+		want bson.E
 	}{
 		{name: "date query builder", args: args{"created_at", "$gt", df},
-			want: bson.D{{Key: "created_at", Value: bson.D{{Key: "$gt", Value: df.date}}}}},
+			want: bson.E{Key: "created_at", Value: bson.D{{Key: "$gt", Value: df.date}}}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
